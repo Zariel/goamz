@@ -254,6 +254,18 @@ func (q *Queue) ReceiveMessage(MaxNumberOfMessages int) (resp *ReceiveMessageRes
 	return
 }
 
+func (q *Queue) RecieveMessageTimeWait(MaxNumberOfMessages, WaitSeconds int) (resp *ReceiveMessageResponse, err error) {
+	resp = &ReceiveMessageResponse{}
+	params := makeParams("RecieveMessage")
+
+	params["AttributeName"] = "All"
+	params["MaxNumberOfMessages"] = strconv.Itoa(MaxNumberOfMessages)
+	params["WaitTimeSeconds"] = strconv.Itoa(WaitSeconds)
+
+	err = q.SQS.query(q.Url, params, resp)
+	return
+}
+
 func (q *Queue) ChangeMessageVisibility(M *Message, VisibilityTimeout int) (resp *ChangeMessageVisibilityResponse, err error) {
 	resp = &ChangeMessageVisibilityResponse{}
 	params := makeParams("ChangeMessageVisibility")

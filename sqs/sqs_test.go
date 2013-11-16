@@ -166,6 +166,44 @@ func (s *S) TestReceiveMessage(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 }
 
+func (s *S) TestReceiveMessageTimeWait(c *gocheck.C) {
+	testServer.PrepareResponse(200, nil, TestReceiveMessageXmlOK)
+
+	q := &sqs.Queue{s.sqs, testServer.URL + "/123456789012/testQueue/"}
+	resp, err := q.RecieveMessageTimeWait(5, 10)
+	req := testServer.WaitRequest()
+
+	c.Assert(req.Method, gocheck.Equals, "GET")
+	c.Assert(req.URL.Path, gocheck.Equals, "/123456789012/testQueue/")
+	c.Assert(req.Header["Date"], gocheck.Not(gocheck.Equals), "")
+	c.Assert(req.URL.Query().Get("WaitTimeSeconds"), gocheck.Equals, "10")
+
+	c.Assert(len(resp.Messages), gocheck.Not(gocheck.Equals), 0)
+	c.Assert(resp.Messages[0].MessageId, gocheck.Equals, "5fea7756-0ea4-451a-a703-a558b933e274")
+	c.Assert(resp.Messages[0].MD5OfBody, gocheck.Equals, "fafb00f5732ab283681e124bf8747ed1")
+	c.Assert(resp.Messages[0].ReceiptHandle, gocheck.Equals, "MbZj6wDWli+JvwwJaBV+3dcjk2YW2vA3+STFFljTM8tJJg6HRG6PYSasuWXPJB+CwLj1FjgXUv1uSj1gUPAWV66FU/WeR4mq2OKpEGYWbnLmpRCJVAyeMjeU5ZBdtcQ+QEauMZc8ZRv37sIW2iJKq3M9MFx1YvV11A2x/KSbkJ0=")
+	c.Assert(resp.Messages[0].Body, gocheck.Equals, "This is a test message")
+
+	c.Assert(len(resp.Messages[0].Attribute), gocheck.Not(gocheck.Equals), 0)
+
+	expectedAttributeResults := []struct {
+		Name  string
+		Value string
+	}{
+		{Name: "SenderId", Value: "195004372649"},
+		{Name: "SentTimestamp", Value: "1238099229000"},
+		{Name: "ApproximateReceiveCount", Value: "5"},
+		{Name: "ApproximateFirstReceiveTimestamp", Value: "1250700979248"},
+	}
+
+	for i, expected := range expectedAttributeResults {
+		c.Assert(resp.Messages[0].Attribute[i].Name, gocheck.Equals, expected.Name)
+		c.Assert(resp.Messages[0].Attribute[i].Value, gocheck.Equals, expected.Value)
+	}
+
+	c.Assert(err, gocheck.IsNil)
+}
+
 func (s *S) TestChangeMessageVisibility(c *gocheck.C) {
 	testServer.PrepareResponse(200, nil, TestReceiveMessageXmlOK)
 
