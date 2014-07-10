@@ -37,9 +37,9 @@ import (
 
 // The SNS type encapsulates operation with an SNS region.
 type SNS struct {
-	aws.Auth
-	aws.Region
-	private byte // Reserve the right of using private data.
+	auth   aws.Auth
+	region aws.Region
+	signer aws.Signer
 }
 
 type Topic struct {
@@ -48,7 +48,11 @@ type Topic struct {
 }
 
 func New(auth aws.Auth, region aws.Region) *SNS {
-	return &SNS{auth, region, 0}
+	return &SNS{
+		auth:   auth,
+		region: region,
+		signer: aws.NewV2Signer(auth, aws.ServiceInfo{Endpoint: region.SNSEndpoint, Signer: 2}),
+	}
 }
 
 type Message struct {
@@ -652,12 +656,13 @@ type xmlErrors struct {
 
 func (sns *SNS) query(topic *Topic, message *Message, params map[string]string, resp interface{}) error {
 	params["Timestamp"] = time.Now().UTC().Format(time.RFC3339)
-	u, err := url.Parse(sns.Region.SNSEndpoint)
+	u, err := url.Parse(sns.region.SNSEndpoint)
 	if err != nil {
 		return err
 	}
 
-	sign(sns.Auth, "GET", "/", params, u.Host)
+	sns.signer.Sign("GET", "/", params)
+
 	u.RawQuery = multimap(params).Encode()
 	r, err := http.Get(u.String())
 	if err != nil {
