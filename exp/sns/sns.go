@@ -28,11 +28,12 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"github.com/crowdmob/goamz/aws"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
+
+	"github.com/crowdmob/goamz/aws"
 )
 
 // The SNS type encapsulates operation with an SNS region.
@@ -111,9 +112,9 @@ type GetTopicAttributesResp struct {
 }
 
 func makeParams(action string) map[string]string {
-	params := make(map[string]string)
-	params["Action"] = action
-	return params
+	return map[string]string{
+		"Action": action,
+	}
 }
 
 // ListTopics
@@ -362,8 +363,7 @@ type ListSubscriptionByTopicOpt struct {
 // ListSubscriptionByTopic
 //
 // See http://goo.gl/LaVcC for more details.
-func (sns *SNS) ListSubscriptionByTopic(options *ListSubscriptionByTopicOpt) (resp *ListSubscriptionByTopicResponse, err error) {
-	resp = &ListSubscriptionByTopicResponse{}
+func (sns *SNS) ListSubscriptionByTopic(options *ListSubscriptionByTopicOpt) (*ListSubscriptionByTopicResponse, error) {
 	params := makeParams("ListSubscriptionsByTopic")
 
 	if options.NextToken != "" {
