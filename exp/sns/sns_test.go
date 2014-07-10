@@ -1,11 +1,12 @@
 package sns_test
 
 import (
+	"testing"
+
 	"github.com/crowdmob/goamz/aws"
 	"github.com/crowdmob/goamz/exp/sns"
 	"github.com/crowdmob/goamz/testutil"
 	"gopkg.in/check.v1"
-	"testing"
 )
 
 func Test(t *testing.T) {
@@ -62,7 +63,7 @@ func (s *S) TestCreateTopic(c *check.C) {
 func (s *S) TestDeleteTopic(c *check.C) {
 	testServer.Response(200, nil, TestDeleteTopicXmlOK)
 
-	t := sns.Topic{nil, "arn:aws:sns:us-east-1:123456789012:My-Topic"}
+	t := &sns.Topic{"arn:aws:sns:us-east-1:123456789012:My-Topic"}
 	resp, err := s.sns.DeleteTopic(t)
 	req := testServer.WaitRequest()
 
