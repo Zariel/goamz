@@ -43,7 +43,6 @@ type SNS struct {
 }
 
 type Topic struct {
-	SNS      *SNS
 	TopicArn string
 }
 
@@ -56,9 +55,7 @@ func New(auth aws.Auth, region aws.Region) *SNS {
 }
 
 type Message struct {
-	SNS     *SNS
-	Topic   *Topic
-	Message [8192]byte
+	Message []byte
 	Subject string
 }
 
@@ -70,8 +67,11 @@ type Subscription struct {
 	TopicArn        string
 }
 
-func (topic *Topic) Message(message [8192]byte, subject string) *Message {
-	return &Message{topic.SNS, topic, message, subject}
+func (topic *Topic) Message(message []byte, subject string) *Message {
+	return &Message{
+		Message: message,
+		Subject: subject,
+	}
 }
 
 type ResponseMetadata struct {
@@ -136,26 +136,19 @@ func (sns *SNS) CreateTopic(Name string) (resp *CreateTopicResp, err error) {
 	resp = &CreateTopicResp{}
 	params := makeParams("CreateTopic")
 	params["Name"] = Name
-	err = sns.query(nil, nil, params, resp)
+	err = sns.query(params, resp)
 	return
 }
 
 // DeleteTopic
 //
 // See http://goo.gl/OXNcY for more details.
-func (sns *SNS) DeleteTopic(topic Topic) (resp *DeleteTopicResp, err error) {
+func (sns *SNS) DeleteTopic(topic *Topic) (resp *DeleteTopicResp, err error) {
 	resp = &DeleteTopicResp{}
 	params := makeParams("DeleteTopic")
 	params["TopicArn"] = topic.TopicArn
-	err = sns.query(nil, nil, params, resp)
+	err = sns.query(params, resp)
 	return
-}
-
-// Delete
-//
-// Helper function for deleting a topic
-func (topic *Topic) Delete() (resp *DeleteTopicResp, err error) {
-	return topic.SNS.DeleteTopic(*topic)
 }
 
 // ListSubscriptions
