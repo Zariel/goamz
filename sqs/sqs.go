@@ -13,7 +13,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"github.com/crowdmob/goamz/aws"
 	"io"
 	"io/ioutil"
 	"log"
@@ -22,6 +21,8 @@ import (
 	"net/url"
 	"strconv"
 	"time"
+
+	"github.com/crowdmob/goamz/aws"
 )
 
 const debug = false
@@ -442,7 +443,7 @@ func (q *Queue) DeleteMessageBatch(msgList []Message) (resp *DeleteMessageBatchR
 }
 
 func (s *SQS) query(queueUrl string, params map[string]string, resp interface{}) (err error) {
-	params["Version"] = "2011-10-01"
+	params["Version"] = "2012-11-05"
 	params["Timestamp"] = time.Now().In(time.UTC).Format(time.RFC3339)
 	var url_ *url.URL
 
@@ -471,7 +472,7 @@ func (s *SQS) query(queueUrl string, params map[string]string, resp interface{})
 	url_.RawQuery = multimap(params).Encode()
 
 	if debug {
-		log.Printf("GET ", url_.String())
+		log.Println("GET ", url_.String())
 	}
 
 	r, err := http.Get(url_.String())
@@ -483,7 +484,7 @@ func (s *SQS) query(queueUrl string, params map[string]string, resp interface{})
 
 	if debug {
 		dump, _ := httputil.DumpResponse(r, true)
-		log.Printf("DUMP:\n", string(dump))
+		log.Println("DUMP:", string(dump))
 	}
 
 	if r.StatusCode != 200 {
