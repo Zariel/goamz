@@ -48,10 +48,15 @@ type Topic struct {
 }
 
 func New(auth aws.Auth, region aws.Region) *SNS {
+	signer, err := aws.NewV2Signer(auth, aws.ServiceInfo{Endpoint: region.SNSEndpoint, Signer: 2})
+	if err != nil {
+		panic(err)
+	}
+
 	return &SNS{
 		auth:   auth,
 		region: region,
-		signer: aws.NewV2Signer(auth, aws.ServiceInfo{Endpoint: region.SNSEndpoint, Signer: 2}),
+		signer: signer,
 	}
 }
 
@@ -213,6 +218,23 @@ func (sns *SNS) Publish(options *PublishOpt) (resp *PublishResp, err error) {
 
 	err = sns.query(params, resp)
 	return
+}
+
+func (s *SNS) PublishWithParams(message string, params map[string]string) (*PublishResp, error) {
+	p := makeParams("Publish")
+
+	for k, v := range params {
+		p[k] = v
+	}
+
+	p["Message"] = message
+
+	resp := &PublishResp{}
+	if err := s.query(p, resp); err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 type SetTopicAttributesResponse struct {
