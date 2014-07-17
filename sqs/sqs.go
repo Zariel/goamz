@@ -29,8 +29,8 @@ const debug = false
 
 // The SQS type encapsulates operation with an SQS region.
 type SQS struct {
-	aws.Auth
-	aws.Region
+	auth    aws.Auth
+	region  aws.Region
 	private byte // Reserve the right of using private data.
 }
 
@@ -58,7 +58,11 @@ func NewFrom(accessKey, secretKey, region string) (*SQS, error) {
 
 // NewFrom Create A new SQS Client from an exisisting aws.Auth
 func New(auth aws.Auth, region aws.Region) *SQS {
-	return &SQS{auth, region, 0}
+	return &SQS{
+		auth:    auth,
+		region:  region,
+		private: 0,
+	}
 }
 
 // Queue Reference to a Queue
@@ -342,13 +346,21 @@ func (q *Queue) GetQueueAttributes(A string) (resp *GetQueueAttributesResponse, 
 	return
 }
 
-func (q *Queue) DeleteMessage(M *Message) (resp *DeleteMessageResponse, err error) {
-	resp = &DeleteMessageResponse{}
-	params := makeParams("DeleteMessage")
-	params["ReceiptHandle"] = M.ReceiptHandle
+func (q *Queue) DeleteMessage(M *Message) (*DeleteMessageResponse, error) {
+	return q.DeleteMessageRecipt(M.ReceiptHandle)
+}
 
-	err = q.SQS.query(q.Url, params, resp)
-	return
+func (q *Queue) DeleteMessageRecipt(recipt string) (*DeleteMessageResponse, error) {
+	resp := &DeleteMessageResponse{}
+	params := makeParams("DeleteMessage")
+	params["ReceiptHandle"] = recipt
+
+	err := q.SQS.query(q.Url, params, resp)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 type SendMessageBatchResultEntry struct {
@@ -448,11 +460,11 @@ func (s *SQS) query(queueUrl string, params map[string]string, resp interface{})
 	var url_ *url.URL
 
 	var path string
-	if queueUrl != "" && len(queueUrl) > len(s.Region.SQSEndpoint) {
+	if queueUrl != "" && len(queueUrl) > len(s.region.SQSEndpoint) {
 		url_, err = url.Parse(queueUrl)
-		path = queueUrl[len(s.Region.SQSEndpoint):]
+		path = queueUrl[len(s.region.SQSEndpoint):]
 	} else {
-		url_, err = url.Parse(s.Region.SQSEndpoint)
+		url_, err = url.Parse(s.region.SQSEndpoint)
 		path = "/"
 	}
 	if err != nil {
@@ -464,10 +476,10 @@ func (s *SQS) query(queueUrl string, params map[string]string, resp interface{})
 	//	return err
 	//}
 
-	if s.Auth.Token() != "" {
-		params["SecurityToken"] = s.Auth.Token()
+	if s.auth.Token() != "" {
+		params["SecurityToken"] = s.auth.Token()
 	}
-	sign(s.Auth, "GET", path, params, url_.Host)
+	sign(s.auth, "GET", path, params, url_.Host)
 
 	url_.RawQuery = multimap(params).Encode()
 
